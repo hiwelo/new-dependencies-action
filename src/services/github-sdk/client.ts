@@ -105,7 +105,7 @@ class GitHubClient {
     }
 
     return JSON.parse(
-      new Buffer(fileInfo.content, fileInfo.encoding as 'base64').toString()
+      Buffer.from(fileInfo.content, fileInfo.encoding as 'base64').toString()
     )
   }
 

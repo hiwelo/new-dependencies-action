@@ -4,6 +4,7 @@ import * as github from '@actions/github'
 import _ from 'underscore'
 import getLocalPackageInfo from './modules/packages/getLocalPackageInfo'
 import {COMMENT_IDENTIFIER} from './config/comment'
+import getPackageFiles from './modules/packages/getPackageFiles'
 
 async function run(): Promise<void> {
   try {
@@ -24,26 +25,18 @@ async function run(): Promise<void> {
     const {ref: baseBranch} = pullRequest.base
 
     // get updated files in this PR
-    const {data: files} = await octokit.pulls.listFiles({
-      ...context
-    })
-
-    // filters `package.json` files in this PR
-    const packagesFiles = files.filter(file =>
-      file.filename.includes('package.json')
-    )
+    const packageFiles = await getPackageFiles(context)
 
     // early-termination if there is no file
-    if (!packagesFiles.length) return
+    if (!packageFiles.length) return
 
     // select the main package file
-    const packageFile = packagesFiles[0]
-    const {filename: packageFileName} = packageFile
+    const packageFile = packageFiles[0]
 
     // fetch content from the base branch
     const {data: basePackage} = await octokit.repos.getContents({
       ...repoContext,
-      path: packageFileName,
+      path: packageFile,
       ref: baseBranch
     })
 
@@ -67,7 +60,7 @@ async function run(): Promise<void> {
     )
 
     // get the current dependencies
-    const currentPackageContent = await getLocalPackageInfo(packageFileName)
+    const currentPackageContent = await getLocalPackageInfo(packageFile)
 
     // fetches deps list from both files
     const existingDeps = Object.keys(basePackageContent.dependencies)

@@ -13354,7 +13354,7 @@ class GitHubClient {
             if (underscore_1.default.isArray(fileInfo) || !fileInfo.content || !fileInfo.encoding) {
                 return undefined;
             }
-            return JSON.parse(new Buffer(fileInfo.content, fileInfo.encoding).toString());
+            return JSON.parse(Buffer.from(fileInfo.content, fileInfo.encoding).toString());
         });
     }
     /**

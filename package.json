@@ -28,10 +28,12 @@
     "@actions/core": "^1.2.0"
   },
   "devDependencies": {
+    "@commitlint/config-conventional": "^8.3.4",
     "@types/jest": "^24.0.23",
     "@types/node": "^12.7.12",
     "@typescript-eslint/parser": "^2.8.0",
     "@zeit/ncc": "^0.20.5",
+    "commitlint": "^8.3.5",
     "cz-conventional-changelog": "3.1.0",
     "eslint": "^5.16.0",
     "eslint-plugin-github": "^2.0.0",
@@ -47,6 +49,11 @@
   "config": {
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
     }
   }
 }

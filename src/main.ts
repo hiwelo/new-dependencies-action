@@ -1,11 +1,8 @@
 /* eslint-disable @typescript-eslint/camelcase */
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import fs from 'fs'
-import util from 'util'
 import _ from 'underscore'
-
-const readFile = util.promisify(fs.readFile)
+import getLocalPackageInfo from './modules/packages/getLocalPackageInfo'
 
 const COMMENT_IDENTIFIER = '<!-- new-dependencies-action -->'
 
@@ -71,11 +68,7 @@ async function run(): Promise<void> {
     )
 
     // get the current dependencies
-    const currentPackageContent = JSON.parse(
-      await readFile(packageFileName, {
-        encoding: 'utf8'
-      })
-    )
+    const currentPackageContent = await getLocalPackageInfo(packageFileName)
 
     // fetches deps list from both files
     const existingDeps = Object.keys(basePackageContent.dependencies)

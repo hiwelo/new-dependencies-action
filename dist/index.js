@@ -1848,14 +1848,16 @@ function manageMessage(newDependencies) {
     return __awaiter(this, void 0, void 0, function* () {
         const ghClient = github_sdk_1.default.getClient();
         const actionMessageId = yield ghClient.fetchMessage();
-        const hasNewDependencies = newDependencies.dependencies.length ||
-            newDependencies.devDependencies.length;
+        const hasNewDependencies = (newDependencies === null || newDependencies === void 0 ? void 0 : newDependencies.dependencies.length) || (newDependencies === null || newDependencies === void 0 ? void 0 : newDependencies.devDependencies.length);
         // early-termination if there is no new dependencies and no existing message
         if (!actionMessageId && !hasNewDependencies)
             return;
         // termination with message deletion if existing message & no new dependencies
         if (actionMessageId && !hasNewDependencies)
             return ghClient.deleteMessage();
+        if (!newDependencies) {
+            throw new Error('No new dependencies should have been solved by the previous conditions');
+        }
         // generate the new content for the message
         const message = `
 ${comment_1.COMMENT_IDENTIFIER}
@@ -2086,7 +2088,7 @@ function run() {
             const packageFiles = yield getPackageFiles_1.default();
             // early-termination if there is no file
             if (!packageFiles.length)
-                return;
+                return manageMessage_1.default();
             // fetch list of new dependencies for all detected packages
             const newDependencies = yield analyseAllPackages_1.default(packageFiles);
             // manage the publication of a message listing the new dependencies if needed

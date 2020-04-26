@@ -3,8 +3,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import _ from 'underscore'
 import getLocalPackageInfo from './modules/packages/getLocalPackageInfo'
-
-const COMMENT_IDENTIFIER = '<!-- new-dependencies-action -->'
+import {COMMENT_IDENTIFIER} from './config/comment'
 
 async function run(): Promise<void> {
   try {

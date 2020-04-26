@@ -2034,7 +2034,7 @@ const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
 const underscore_1 = __importDefault(__webpack_require__(891));
 const getLocalPackageInfo_1 = __importDefault(__webpack_require__(226));
-const COMMENT_IDENTIFIER = '<!-- new-dependencies-action -->';
+const comment_1 = __webpack_require__(374);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -2082,13 +2082,13 @@ function run() {
                 return;
             // creates the content of the comment
             const commentBody = `
-${COMMENT_IDENTIFIER}
+${comment_1.COMMENT_IDENTIFIER}
 deps: ${newDeps.join(',')}
 devDeps: ${newDevDeps.join(',')}
 `;
             // checks if a comment already exists
             const { data: comments } = yield octokit.issues.listComments(Object.assign(Object.assign({}, repoContext), { issue_number: prContext.number }));
-            const actionComments = comments.filter(comment => comment.body.includes(COMMENT_IDENTIFIER));
+            const actionComments = comments.filter(comment => comment.body.includes(comment_1.COMMENT_IDENTIFIER));
             // if existing, update the comment with the new body
             if (actionComments.length) {
                 yield octokit.issues.updateComment(Object.assign(Object.assign({}, repoContext), { comment_id: actionComments[0].id, body: commentBody }));
@@ -4670,6 +4670,17 @@ function deprecate (message) {
   console.warn(`DEPRECATED (@octokit/rest): ${message}`)
   loggedMessages[message] = 1
 }
+
+
+/***/ }),
+
+/***/ 374:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.COMMENT_IDENTIFIER = '<!-- new-dependencies-action -->';
 
 
 /***/ }),

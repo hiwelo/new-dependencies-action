@@ -25,7 +25,7 @@ async function run(): Promise<void> {
     const {ref: baseBranch} = pullRequest.base
 
     // get updated files in this PR
-    const packageFiles = await getPackageFiles(context)
+    const packageFiles = await getPackageFiles()
 
     // early-termination if there is no file
     if (!packageFiles.length) return

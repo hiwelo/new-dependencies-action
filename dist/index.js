@@ -2049,6 +2049,52 @@ module.exports.MaxBufferError = MaxBufferError;
 
 /***/ }),
 
+/***/ 161:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const github_sdk_1 = __importDefault(__webpack_require__(908));
+const comment_1 = __webpack_require__(374);
+function manageMessage(newDependencies) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const ghClient = github_sdk_1.default.getClient();
+        const actionMessageId = yield ghClient.fetchMessage();
+        const hasNewDependencies = newDependencies.dependencies.length ||
+            newDependencies.devDependencies.length;
+        // early-termination if there is no new dependencies and no existing message
+        if (!actionMessageId && !hasNewDependencies)
+            return;
+        // termination with message deletion if existing message & no new dependencies
+        if (actionMessageId && !hasNewDependencies)
+            return ghClient.deleteMessage();
+        // generate the new content for the message
+        const message = `
+${comment_1.COMMENT_IDENTIFIER}
+deps: ${newDependencies.dependencies.join(',')}
+devDeps: ${newDependencies.devDependencies.join(',')}`;
+        // publish the new content for the action
+        yield ghClient.setMessage(message);
+    });
+}
+exports.default = manageMessage;
+
+
+/***/ }),
+
 /***/ 168:
 /***/ (function(module) {
 
@@ -2171,20 +2217,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-/* eslint-disable @typescript-eslint/camelcase */
 const core = __importStar(__webpack_require__(470));
-const github = __importStar(__webpack_require__(469));
-const comment_1 = __webpack_require__(374);
 const getPackageFiles_1 = __importDefault(__webpack_require__(624));
 const analyseAllPackages_1 = __importDefault(__webpack_require__(443));
+const manageMessage_1 = __importDefault(__webpack_require__(161));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            // setup an hydrated Octokit client
-            const ghToken = core.getInput('token');
-            const octokit = new github.GitHub(ghToken);
-            const repoContext = github.context.repo;
-            const prContext = github.context.issue;
             // get updated files in this PR
             const packageFiles = yield getPackageFiles_1.default();
             // early-termination if there is no file
@@ -2192,27 +2231,8 @@ function run() {
                 return;
             // fetch list of new dependencies for all detected packages
             const newDependencies = yield analyseAllPackages_1.default(packageFiles);
-            // early-termination if there is no new dependencies
-            if (!newDependencies.dependencies.length &&
-                !newDependencies.devDependencies.length) {
-                return;
-            }
-            // creates the content of the comment
-            const commentBody = `
-${comment_1.COMMENT_IDENTIFIER}
-deps: ${newDependencies.dependencies.join(',')}
-devDeps: ${newDependencies.devDependencies.join(',')}
-`;
-            // checks if a comment already exists
-            const { data: comments } = yield octokit.issues.listComments(Object.assign(Object.assign({}, repoContext), { issue_number: prContext.number }));
-            const actionComments = comments.filter(comment => comment.body.includes(comment_1.COMMENT_IDENTIFIER));
-            // if existing, update the comment with the new body
-            if (actionComments.length) {
-                yield octokit.issues.updateComment(Object.assign(Object.assign({}, repoContext), { comment_id: actionComments[0].id, body: commentBody }));
-                return;
-            }
-            // if not already existing, create a new comment
-            yield octokit.issues.createComment(Object.assign(Object.assign({}, repoContext), { issue_number: prContext.number, body: commentBody }));
+            // manage the publication of a message listing the new dependencies if needed
+            yield manageMessage_1.default(newDependencies);
         }
         catch (error) {
             core.setFailed(error.message);
@@ -8248,6 +8268,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = __webpack_require__(470);
 const github_1 = __webpack_require__(469);
 const underscore_1 = __importDefault(__webpack_require__(891));
+const comment_1 = __webpack_require__(374);
 class GitHubClient {
     constructor() {
         /** Hydrates the Octokit client with the provided token */
@@ -8258,6 +8279,38 @@ class GitHubClient {
         this.owner = owner;
         this.prNumber = number;
         this.repo = repo;
+    }
+    /**
+     * Create the message created by this action with the provided content
+     *
+     * @param content Content of the updated message
+     */
+    createMessage(content) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.messageId)
+                return this.updateMessage(content);
+            yield this.octokit.issues.createComment({
+                owner: this.owner,
+                repo: this.repo,
+                issue_number: this.prNumber,
+                body: content
+            });
+        });
+    }
+    /**
+     * Delete the message created by this action
+     */
+    deleteMessage() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.messageId)
+                return;
+            yield this.octokit.issues.deleteComment({
+                owner: this.owner,
+                repo: this.repo,
+                comment_id: this.messageId
+            });
+            this.messageId = false;
+        });
     }
     /**
      * Returns the ref of the base branch for the current pull request
@@ -8297,6 +8350,23 @@ class GitHubClient {
         });
     }
     /**
+     * Fetch the id of an existing message made by this action
+     */
+    fetchMessage() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.messageId === undefined) {
+                const { data } = yield this.octokit.issues.listComments({
+                    owner: this.owner,
+                    repo: this.repo,
+                    issue_number: this.prNumber
+                });
+                const actionMessages = data.filter(message => message.body.includes(comment_1.COMMENT_IDENTIFIER));
+                this.messageId = actionMessages.length ? actionMessages[0].id : false;
+            }
+            return this.messageId || undefined;
+        });
+    }
+    /**
      * List files in the current pull request
      */
     listFiles() {
@@ -8307,6 +8377,42 @@ class GitHubClient {
                 pull_number: this.prNumber
             });
             return data.map(file => file.filename);
+        });
+    }
+    /**
+     * Set the message created by this action with the provided content by
+     * creating a new comment or updating the existing one depending on the
+     * current situation
+     *
+     * @param content Content of the updated message
+     */
+    setMessage(content) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // look for an existing message if not already done
+            if (this.messageId === undefined)
+                yield this.fetchMessage();
+            // updates the existing message if existing
+            if (this.messageId)
+                return this.updateMessage(content);
+            // creates a new message if not already existing
+            yield this.createMessage(content);
+        });
+    }
+    /**
+     * Update the message created by this action with the provided content
+     *
+     * @param content Content of the updated message
+     */
+    updateMessage(content) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.messageId)
+                return this.createMessage(content);
+            yield this.octokit.issues.updateComment({
+                owner: this.owner,
+                repo: this.repo,
+                comment_id: this.messageId,
+                body: content
+            });
         });
     }
     /**

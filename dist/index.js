@@ -2035,6 +2035,7 @@ const github = __importStar(__webpack_require__(469));
 const underscore_1 = __importDefault(__webpack_require__(891));
 const getLocalPackageInfo_1 = __importDefault(__webpack_require__(226));
 const comment_1 = __webpack_require__(374);
+const getPackageFiles_1 = __importDefault(__webpack_require__(624));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -2048,17 +2049,14 @@ function run() {
             const { data: pullRequest } = yield octokit.pulls.get(Object.assign({}, context));
             const { ref: baseBranch } = pullRequest.base;
             // get updated files in this PR
-            const { data: files } = yield octokit.pulls.listFiles(Object.assign({}, context));
-            // filters `package.json` files in this PR
-            const packagesFiles = files.filter(file => file.filename.includes('package.json'));
+            const packageFiles = yield getPackageFiles_1.default(context);
             // early-termination if there is no file
-            if (!packagesFiles.length)
+            if (!packageFiles.length)
                 return;
             // select the main package file
-            const packageFile = packagesFiles[0];
-            const { filename: packageFileName } = packageFile;
+            const packageFile = packageFiles[0];
             // fetch content from the base branch
-            const { data: basePackage } = yield octokit.repos.getContents(Object.assign(Object.assign({}, repoContext), { path: packageFileName, ref: baseBranch }));
+            const { data: basePackage } = yield octokit.repos.getContents(Object.assign(Object.assign({}, repoContext), { path: packageFile, ref: baseBranch }));
             // throw error if the result is not a file
             if (underscore_1.default.isArray(basePackage) ||
                 !basePackage.content ||
@@ -2068,7 +2066,7 @@ function run() {
             // get the content of the base dependencies
             const basePackageContent = JSON.parse(new Buffer(basePackage.content, basePackage.encoding).toString());
             // get the current dependencies
-            const currentPackageContent = yield getLocalPackageInfo_1.default(packageFileName);
+            const currentPackageContent = yield getLocalPackageInfo_1.default(packageFile);
             // fetches deps list from both files
             const existingDeps = Object.keys(basePackageContent.dependencies);
             const existingDevDeps = Object.keys(basePackageContent.devDependencies);
@@ -8549,6 +8547,17 @@ module.exports = require("http");
 
 /***/ }),
 
+/***/ 608:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PACKAGE_FILE_NAME = 'package.json';
+
+
+/***/ }),
+
 /***/ 614:
 /***/ (function(module) {
 
@@ -8607,6 +8616,47 @@ module.exports.env = opts => {
 /***/ (function(module) {
 
 module.exports = require("path");
+
+/***/ }),
+
+/***/ 624:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const core_1 = __webpack_require__(470);
+const github_1 = __webpack_require__(469);
+const package_1 = __webpack_require__(608);
+/**
+ * Lists all updated package files in the current pull request
+ *
+ * @param context Context to use for the GitHub API call
+ */
+function getPackageFiles(context) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // setups GitHub API
+        const ghToken = core_1.getInput('token');
+        const octokit = new github_1.GitHub(ghToken);
+        // lists all updated files in the current pull request
+        const { data: files } = yield octokit.pulls.listFiles(Object.assign({}, context));
+        // lists all package files updated in this PR
+        const packageFiles = files.filter(file => file.filename.includes(package_1.PACKAGE_FILE_NAME));
+        // returns an array from the list of package files
+        return packageFiles.map(file => file.filename);
+    });
+}
+exports.default = getPackageFiles;
+
 
 /***/ }),
 

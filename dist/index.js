@@ -2174,10 +2174,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /* eslint-disable @typescript-eslint/camelcase */
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
-const underscore_1 = __importDefault(__webpack_require__(891));
-const getLocalPackageInfo_1 = __importDefault(__webpack_require__(226));
 const comment_1 = __webpack_require__(374);
 const getPackageFiles_1 = __importDefault(__webpack_require__(624));
+const analysePackage_1 = __importDefault(__webpack_require__(384));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -2186,10 +2185,6 @@ function run() {
             const octokit = new github.GitHub(ghToken);
             const repoContext = github.context.repo;
             const prContext = github.context.issue;
-            const context = Object.assign(Object.assign({}, repoContext), { pull_number: prContext.number });
-            // get information about the PR
-            const { data: pullRequest } = yield octokit.pulls.get(Object.assign({}, context));
-            const { ref: baseBranch } = pullRequest.base;
             // get updated files in this PR
             const packageFiles = yield getPackageFiles_1.default();
             // early-termination if there is no file
@@ -2197,34 +2192,18 @@ function run() {
                 return;
             // select the main package file
             const packageFile = packageFiles[0];
-            // fetch content from the base branch
-            const { data: basePackage } = yield octokit.repos.getContents(Object.assign(Object.assign({}, repoContext), { path: packageFile, ref: baseBranch }));
-            // throw error if the result is not a file
-            if (underscore_1.default.isArray(basePackage) ||
-                !basePackage.content ||
-                !basePackage.encoding) {
-                throw new Error('It looks like the result sent by the GitHub API is not what was expected.');
-            }
-            // get the content of the base dependencies
-            const basePackageContent = JSON.parse(new Buffer(basePackage.content, basePackage.encoding).toString());
-            // get the current dependencies
-            const currentPackageContent = yield getLocalPackageInfo_1.default(packageFile);
-            // fetches deps list from both files
-            const existingDeps = Object.keys(basePackageContent.dependencies);
-            const existingDevDeps = Object.keys(basePackageContent.devDependencies);
-            const updatedDeps = Object.keys(currentPackageContent.dependencies);
-            const updatedDevDeps = Object.keys(currentPackageContent.devDependencies);
-            // detect new dependencies
-            const newDeps = updatedDeps.filter(dep => !existingDeps.includes(dep));
-            const newDevDeps = updatedDevDeps.filter(dep => !existingDevDeps.includes(dep));
+            // fetch list of new dependencies for this package
+            const newDependencies = yield analysePackage_1.default(packageFile);
             // early-termination if there is no new dependencies
-            if (!newDeps.length && !newDevDeps.length)
+            if (!newDependencies.dependencies.length &&
+                !newDependencies.devDependencies.length) {
                 return;
+            }
             // creates the content of the comment
             const commentBody = `
 ${comment_1.COMMENT_IDENTIFIER}
-deps: ${newDeps.join(',')}
-devDeps: ${newDevDeps.join(',')}
+deps: ${newDependencies.dependencies.join(',')}
+devDeps: ${newDependencies.devDependencies.join(',')}
 `;
             // checks if a comment already exists
             const { data: comments } = yield octokit.issues.listComments(Object.assign(Object.assign({}, repoContext), { issue_number: prContext.number }));
@@ -4482,6 +4461,54 @@ function deprecate (message) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.COMMENT_IDENTIFIER = '<!-- new-dependencies-action -->';
+
+
+/***/ }),
+
+/***/ 384:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const github_sdk_1 = __importDefault(__webpack_require__(908));
+const getLocalPackageInfo_1 = __importDefault(__webpack_require__(226));
+function analysePackage(file) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const ghClient = github_sdk_1.default.getClient();
+        // fetches information about the package in the base branch
+        const baseBranch = yield ghClient.getBaseBranch();
+        const basePackage = yield ghClient.getPackage(file, baseBranch);
+        const baseDeps = basePackage ? Object.keys(basePackage.dependencies) : [];
+        const baseDevDeps = basePackage
+            ? Object.keys(basePackage.devDependencies)
+            : [];
+        // fetches information about the updated package file
+        const updatedPackage = yield getLocalPackageInfo_1.default(file);
+        const updatedDeps = Object.keys(updatedPackage.dependencies);
+        const updatedDevDeps = Object.keys(updatedPackage.devDependencies);
+        // filters new dependencies not existing in the base branch
+        const newDeps = updatedDeps.filter(dep => !baseDeps.includes(dep));
+        const newDevDeps = updatedDevDeps.filter(dep => !baseDevDeps.includes(dep));
+        return {
+            dependencies: newDeps,
+            devDependencies: newDevDeps
+        };
+    });
+}
+exports.default = analysePackage;
 
 
 /***/ }),
@@ -8165,10 +8192,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 /* eslint-disable @typescript-eslint/camelcase, @typescript-eslint/explicit-member-accessibility */
 const core_1 = __webpack_require__(470);
 const github_1 = __webpack_require__(469);
+const underscore_1 = __importDefault(__webpack_require__(891));
 class GitHubClient {
     constructor() {
         /** Hydrates the Octokit client with the provided token */
@@ -8179,6 +8210,43 @@ class GitHubClient {
         this.owner = owner;
         this.prNumber = number;
         this.repo = repo;
+    }
+    /**
+     * Returns the ref of the base branch for the current pull request
+     */
+    getBaseBranch() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.baseBranch) {
+                const { data } = yield this.octokit.pulls.get({
+                    pull_number: this.prNumber,
+                    owner: this.owner,
+                    repo: this.repo
+                });
+                this.baseBranch = data.base.ref;
+            }
+            return this.baseBranch;
+        });
+    }
+    /**
+     * Returns the content of the requested file in the requested branch
+     *
+     * @param file Requested file
+     * @param branch Requested branch, defaults to master
+     */
+    getPackage(file, baseBranch) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { data: fileInfo } = yield this.octokit.repos.getContents({
+                owner: this.owner,
+                path: file,
+                ref: baseBranch,
+                repo: this.repo
+            });
+            // returns undefined if there is no file existing yet
+            if (underscore_1.default.isArray(fileInfo) || !fileInfo.content || !fileInfo.encoding) {
+                return undefined;
+            }
+            return JSON.parse(new Buffer(fileInfo.content, fileInfo.encoding).toString());
+        });
     }
     /**
      * List files in the current pull request

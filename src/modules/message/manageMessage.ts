@@ -1,6 +1,6 @@
 import {DependenciesList} from '../../types/package'
 import GitHubClient from '../../services/github-sdk'
-import {COMMENT_IDENTIFIER} from '../../config/comment'
+import draftMessage from './draftMessage'
 
 async function manageMessage(
   newDependencies?: DependenciesList
@@ -24,10 +24,7 @@ async function manageMessage(
   }
 
   // generate the new content for the message
-  const message = `
-${COMMENT_IDENTIFIER}
-deps: ${newDependencies.dependencies.join(',')}
-devDeps: ${newDependencies.devDependencies.join(',')}`
+  const message = await draftMessage(newDependencies)
 
   // publish the new content for the action
   await ghClient.setMessage(message)

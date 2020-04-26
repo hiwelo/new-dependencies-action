@@ -1,10 +1,12 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: Highlight new NPM Dependencies
+description: Add a message in Pull Request with basic information when new dependencies are added
+author: Damien Senger <hello@raccoon.studio>
+branding:
+  icon: plus-square
+  color: gray-dark
 inputs:
-  myInput:              # change this
-    description: 'input description here'
-    default: 'default value if applicable'
+  token:
+    description: Auth Token for the GitHub API
 runs:
-  using: 'node12'
-  main: 'dist/index.js'
+  using: node12
+  main: dist/index.js

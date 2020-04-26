@@ -2176,7 +2176,7 @@ const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
 const comment_1 = __webpack_require__(374);
 const getPackageFiles_1 = __importDefault(__webpack_require__(624));
-const analysePackage_1 = __importDefault(__webpack_require__(384));
+const analyseAllPackages_1 = __importDefault(__webpack_require__(443));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -2190,10 +2190,8 @@ function run() {
             // early-termination if there is no file
             if (!packageFiles.length)
                 return;
-            // select the main package file
-            const packageFile = packageFiles[0];
-            // fetch list of new dependencies for this package
-            const newDependencies = yield analysePackage_1.default(packageFile);
+            // fetch list of new dependencies for all detected packages
+            const newDependencies = yield analyseAllPackages_1.default(packageFiles);
             // early-termination if there is no new dependencies
             if (!newDependencies.dependencies.length &&
                 !newDependencies.devDependencies.length) {
@@ -5166,6 +5164,56 @@ function escapeProperty(s) {
         .replace(/,/g, '%2C');
 }
 //# sourceMappingURL=command.js.map
+
+/***/ }),
+
+/***/ 443:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const analysePackage_1 = __importDefault(__webpack_require__(384));
+/**
+ * Returns the list of all new dependencies not existing in the base branch
+ * for all the packages provided as a parameter
+ *
+ * @param files List of packages to analyse with the base branch
+ */
+function analyseAllPackages(files) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const dependencies = {
+            dependencies: [],
+            devDependencies: []
+        };
+        for (const file of files) {
+            const result = yield analysePackage_1.default(file);
+            dependencies.dependencies = [
+                ...dependencies.dependencies,
+                ...result.dependencies
+            ];
+            dependencies.devDependencies = [
+                ...dependencies.devDependencies,
+                ...result.devDependencies
+            ];
+        }
+        return dependencies;
+    });
+}
+exports.default = analyseAllPackages;
+
 
 /***/ }),
 

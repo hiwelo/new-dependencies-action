@@ -28,6 +28,19 @@ class GitHubClient {
   }
 
   /**
+   * Returns the ref of the base branch for the current pull request
+   */
+  public async getBaseBranch(): Promise<string> {
+    const {data} = await this.octokit.pulls.get({
+      pull_number: this.prNumber,
+      owner: this.owner,
+      repo: this.repo
+    })
+
+    return data.base.ref
+  }
+
+  /**
    * List files in the current pull request
    */
   public async listFiles(): Promise<string[]> {

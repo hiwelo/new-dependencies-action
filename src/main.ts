@@ -5,6 +5,7 @@ import _ from 'underscore'
 import getLocalPackageInfo from './modules/packages/getLocalPackageInfo'
 import {COMMENT_IDENTIFIER} from './config/comment'
 import getPackageFiles from './modules/packages/getPackageFiles'
+import GitHubClient from './services/github-sdk'
 
 async function run(): Promise<void> {
   try {
@@ -13,16 +14,12 @@ async function run(): Promise<void> {
     const octokit = new github.GitHub(ghToken)
     const repoContext = github.context.repo
     const prContext = github.context.issue
-    const context = {
-      ...repoContext,
-      pull_number: prContext.number
-    }
+
+    // get an hydrated GitHub API client
+    const ghClient = GitHubClient.getClient()
 
     // get information about the PR
-    const {data: pullRequest} = await octokit.pulls.get({
-      ...context
-    })
-    const {ref: baseBranch} = pullRequest.base
+    const baseBranch = await ghClient.getBaseBranch()
 
     // get updated files in this PR
     const packageFiles = await getPackageFiles()

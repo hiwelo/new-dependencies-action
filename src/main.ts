@@ -3,7 +3,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {COMMENT_IDENTIFIER} from './config/comment'
 import getPackageFiles from './modules/packages/getPackageFiles'
-import analysePackage from './modules/packages/analysePackage'
+import analyseAllPackages from './modules/packages/analyseAllPackages'
 
 async function run(): Promise<void> {
   try {
@@ -19,11 +19,8 @@ async function run(): Promise<void> {
     // early-termination if there is no file
     if (!packageFiles.length) return
 
-    // select the main package file
-    const packageFile = packageFiles[0]
-
-    // fetch list of new dependencies for this package
-    const newDependencies = await analysePackage(packageFile)
+    // fetch list of new dependencies for all detected packages
+    const newDependencies = await analyseAllPackages(packageFiles)
 
     // early-termination if there is no new dependencies
     if (

@@ -9,7 +9,7 @@ async function run(): Promise<void> {
     const packageFiles = await getPackageFiles()
 
     // early-termination if there is no file
-    if (!packageFiles.length) return
+    if (!packageFiles.length) return manageMessage()
 
     // fetch list of new dependencies for all detected packages
     const newDependencies = await analyseAllPackages(packageFiles)

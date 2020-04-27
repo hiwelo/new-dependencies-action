@@ -4283,10 +4283,22 @@ const readFileAsync = util_1.promisify(fs_1.readFile);
  */
 function getLocalPackageInfo(file = 'package.json') {
     return __awaiter(this, void 0, void 0, function* () {
-        const fileContent = yield readFileAsync(file, {
-            encoding: 'utf8'
-        });
-        return JSON.parse(fileContent);
+        try {
+            const fileContent = yield readFileAsync(file, {
+                encoding: 'utf8'
+            });
+            const content = JSON.parse(fileContent);
+            return {
+                dependencies: (content === null || content === void 0 ? void 0 : content.dependencies) || {},
+                devDependencies: (content === null || content === void 0 ? void 0 : content.devDependencies) || {}
+            };
+        }
+        catch (error) {
+            return {
+                dependencies: {},
+                devDependencies: {}
+            };
+        }
     });
 }
 exports.default = getLocalPackageInfo;
@@ -13352,9 +13364,16 @@ class GitHubClient {
             });
             // returns undefined if there is no file existing yet
             if (underscore_1.default.isArray(fileInfo) || !fileInfo.content || !fileInfo.encoding) {
-                return undefined;
+                return {
+                    dependencies: {},
+                    devDependencies: {}
+                };
             }
-            return JSON.parse(Buffer.from(fileInfo.content, fileInfo.encoding).toString());
+            const content = JSON.parse(Buffer.from(fileInfo.content, fileInfo.encoding).toString());
+            return {
+                dependencies: (content === null || content === void 0 ? void 0 : content.dependencies) || {},
+                devDependencies: (content === null || content === void 0 ? void 0 : content.devDependencies) || {}
+            };
         });
     }
     /**

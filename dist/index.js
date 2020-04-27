@@ -13356,24 +13356,32 @@ class GitHubClient {
      */
     getPackage(file, baseBranch) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { data: fileInfo } = yield this.octokit.repos.getContents({
-                owner: this.owner,
-                path: file,
-                ref: baseBranch,
-                repo: this.repo
-            });
-            // returns undefined if there is no file existing yet
-            if (underscore_1.default.isArray(fileInfo) || !fileInfo.content || !fileInfo.encoding) {
+            try {
+                const { data: fileInfo } = yield this.octokit.repos.getContents({
+                    owner: this.owner,
+                    path: file,
+                    ref: baseBranch,
+                    repo: this.repo
+                });
+                // returns undefined if there is no file existing yet
+                if (underscore_1.default.isArray(fileInfo) || !fileInfo.content || !fileInfo.encoding) {
+                    return {
+                        dependencies: {},
+                        devDependencies: {}
+                    };
+                }
+                const content = JSON.parse(Buffer.from(fileInfo.content, fileInfo.encoding).toString());
+                return {
+                    dependencies: (content === null || content === void 0 ? void 0 : content.dependencies) || {},
+                    devDependencies: (content === null || content === void 0 ? void 0 : content.devDependencies) || {}
+                };
+            }
+            catch (error) {
                 return {
                     dependencies: {},
                     devDependencies: {}
                 };
             }
-            const content = JSON.parse(Buffer.from(fileInfo.content, fileInfo.encoding).toString());
-            return {
-                dependencies: (content === null || content === void 0 ? void 0 : content.dependencies) || {},
-                devDependencies: (content === null || content === void 0 ? void 0 : content.devDependencies) || {}
-            };
         });
     }
     /**

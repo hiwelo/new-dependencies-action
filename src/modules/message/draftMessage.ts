@@ -1,4 +1,5 @@
 import {debug} from '@actions/core'
+import {compact} from 'lodash/fp'
 import packageJson, {FullMetadata} from 'package-json'
 import {COMMENT_IDENTIFIER} from '../../config/comment'
 import {DependenciesList} from '../../types/package'
@@ -47,18 +48,10 @@ async function draftMessage(
       : ``
   }
   ${
-    info[dep].versions
-      ? `<tr><td>Versions</td><td>${info[dep].versions}</td></tr>`
-      : ``
-  }
-  ${
-    info[dep].users
-      ? `<tr><td>Estimated number of users</td><td>${info[dep].users}</td></tr>`
-      : ``
-  }
-  ${
     info[dep].contributors
-      ? `<tr><td>Contributors</td><td>${info[dep].contributors}</td></tr>`
+      ? `<tr><td>Contributors</td><td>${info[dep].contributors
+          ?.map(contributor => contributor.name)
+          .join(', ')}</td></tr>`
       : ``
   }
   ${
@@ -79,16 +72,21 @@ ${
 }
     `
 
-  const message = `
-${COMMENT_IDENTIFIER}
+  const dependenciesMessage = `
 ## Dependencies added
 ${newDependencies.dependencies.map(messageInfo).join(`\n`)}
+`
 
+  const devDependenciesMessage = `
 ## Development dependencies added
 ${newDependencies.devDependencies.map(messageInfo).join(`\n`)}
 `
 
-  return message.trim()
+  return compact([
+    COMMENT_IDENTIFIER,
+    newDependencies.dependencies.length && dependenciesMessage,
+    newDependencies.devDependencies.length && devDependenciesMessage
+  ]).join(`\n`)
 }
 
 export default draftMessage

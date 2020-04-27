@@ -1,6 +1,6 @@
 {
   "name": "new-dependencies-action",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "GitHub Action adding a comment with information about new NPM dependencies detected in a pull request",
   "main": "lib/main.js",

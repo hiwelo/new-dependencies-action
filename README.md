@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check for new dependencies
-        uses: hiwelo/new-dependencies-action@1.0.0
+        uses: hiwelo/new-dependencies-action@1.0.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 

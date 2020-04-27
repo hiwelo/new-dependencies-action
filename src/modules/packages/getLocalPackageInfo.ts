@@ -10,11 +10,23 @@ const readFileAsync = promisify(readFile)
  * @param file path to the requested local `package.json` file
  */
 async function getLocalPackageInfo(file = 'package.json'): Promise<Package> {
-  const fileContent = await readFileAsync(file, {
-    encoding: 'utf8'
-  })
+  try {
+    const fileContent = await readFileAsync(file, {
+      encoding: 'utf8'
+    })
 
-  return JSON.parse(fileContent)
+    const content = JSON.parse(fileContent)
+
+    return {
+      dependencies: content?.dependencies || {},
+      devDependencies: content?.devDependencies || {}
+    }
+  } catch (error) {
+    return {
+      dependencies: {},
+      devDependencies: {}
+    }
+  }
 }
 
 export default getLocalPackageInfo

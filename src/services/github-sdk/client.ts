@@ -89,28 +89,35 @@ class GitHubClient {
    * @param branch Requested branch, defaults to master
    */
   public async getPackage(file: string, baseBranch: string): Promise<Package> {
-    const {data: fileInfo} = await this.octokit.repos.getContents({
-      owner: this.owner,
-      path: file,
-      ref: baseBranch,
-      repo: this.repo
-    })
+    try {
+      const {data: fileInfo} = await this.octokit.repos.getContents({
+        owner: this.owner,
+        path: file,
+        ref: baseBranch,
+        repo: this.repo
+      })
 
-    // returns undefined if there is no file existing yet
-    if (_.isArray(fileInfo) || !fileInfo.content || !fileInfo.encoding) {
+      // returns undefined if there is no file existing yet
+      if (_.isArray(fileInfo) || !fileInfo.content || !fileInfo.encoding) {
+        return {
+          dependencies: {},
+          devDependencies: {}
+        }
+      }
+
+      const content = JSON.parse(
+        Buffer.from(fileInfo.content, fileInfo.encoding as 'base64').toString()
+      )
+
+      return {
+        dependencies: content?.dependencies || {},
+        devDependencies: content?.devDependencies || {}
+      }
+    } catch (error) {
       return {
         dependencies: {},
         devDependencies: {}
       }
-    }
-
-    const content = JSON.parse(
-      Buffer.from(fileInfo.content, fileInfo.encoding as 'base64').toString()
-    )
-
-    return {
-      dependencies: content?.dependencies || {},
-      devDependencies: content?.devDependencies || {}
     }
   }
 

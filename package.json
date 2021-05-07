@@ -29,7 +29,7 @@
     "@actions/github": "^2.1.1",
     "lodash": "^4.17.19",
     "package-json": "^6.5.0",
-    "underscore": "^1.10.2"
+    "underscore": "^1.12.1"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^8.3.4",

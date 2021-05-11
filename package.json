@@ -27,7 +27,7 @@
   "dependencies": {
     "@actions/core": "^1.2.6",
     "@actions/github": "^2.1.1",
-    "lodash": "^4.17.19",
+    "lodash": "^4.17.21",
     "package-json": "^6.5.0",
     "underscore": "^1.10.2"
   },
